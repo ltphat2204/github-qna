@@ -1,4 +1,6 @@
+import { generate } from 'node_modules/@langchain/core/dist/utils/fast-json-patch';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import type { Document } from '@langchain/core/documents';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const model = genAI.getGenerativeModel({
@@ -52,35 +54,34 @@ Please summarise the following diff file: \n\n${diff}.`
     return response.response.text();
 }
 
-aiSummarizeCommit(`
-    diff --git a/SRC/client/src/META-INF/MANIFEST.MF b/SRC/client/src/META-INF/MANIFEST.MF
-new file mode 100644
-index 0000000..6ca453f
---- /dev/null
-+++ b/SRC/client/src/META-INF/MANIFEST.MF
-@@ -0,0 +1,3 @@
-+Manifest-Version: 1.0
-+Main-Class: ClientApp
-+
-diff --git a/SRC/client/src/com/ltphat/chatapp/client/gui/GroupChatWindow.java b/SRC/client/src/com/ltphat/chatapp/client/gui/GroupChatWindow.java
-index a15d62c..c664641 100644
---- a/SRC/client/src/com/ltphat/chatapp/client/gui/GroupChatWindow.java
-+++ b/SRC/client/src/com/ltphat/chatapp/client/gui/GroupChatWindow.java
-@@ -203,7 +203,7 @@ public void run() {
-             });
-         } else if (message instanceof FileTransferRequest) {
-             FileTransferRequest fileReq = (FileTransferRequest) message;
--            if (fileReq.getRecipient().equals(username) && fileReq.getSender().equals(groupName)) {
-+            if (fileReq.getRecipient().equals(groupName)) {
-                 handleIncomingFile(fileReq);
-             }
-         }
-@@ -369,6 +369,7 @@ private void leaveGroup() {
-         if (confirm == JOptionPane.YES_OPTION) {
-             try {
-                 client.leaveGroup(groupName, username);
-+                navigateBack();
-             } catch (IOException e) {
-                 e.printStackTrace();
-                 JOptionPane.showMessageDialog(this, "An error occurred while leaving the group.", "Error", JOptionPane.ERROR_MESSAGE);`)
-.then(console.log);
+export async function summarizeCode(doc: Document) {
+    console.log("getting summary for", doc.metadata.source);
+    const code = doc.pageContent.slice(0, 10000); // Limit to 10000 characters
+  
+    const prompt = [
+      `You are an intelligent senior software engineer who specialises in onboarding junior software engineers onto projects.`,
+      `You are onboarding a junior software engineer and need to explain the purpose and functionality of the ${doc.metadata.source} file to them.`,
+      `Assume the junior engineer has a basic understanding of Javascript or Typescript, but may not be familiar with specific libraries or patterns.`,
+      `Focus on the core logic and purpose of the code. Omit detailed explanations of syntax or obvious operations.`,
+      `Be concise and avoid unnecessary jargon.`,
+      `Explain what the code *does*, not just *how* it does it.`,
+      `Here is the code:`,
+      `${code}`,
+      `Give a summary of the code above in no more than 100 words. Focus on the main purpose and any important algorithms or data structures involved. Assume basic Javascript/Typescript knowledge from the junior developer. Emphasize the purpose this specific code fulfills in the larger system.`,
+    ];
+  
+    const response = await model.generateContent(prompt);
+  
+    return response.response.text();
+}
+
+export async function generateEmbedding(summary: string) {
+    const model = genAI.getGenerativeModel({
+        model: 'text-embedding-004'
+    });
+
+    const result = await model.embedContent(summary);
+    const embedding = result.embedding;
+
+    return embedding.values;
+}

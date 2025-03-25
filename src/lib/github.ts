@@ -97,7 +97,7 @@ async function fetchProjectGithub(projectId: string) {
     });
 
     if (!project?.githubUrl) {
-        throw new Error('Project has to Github url');
+        throw new Error('Project has no Github url');
     }
 
     return { project, githubUrl: project?.githubUrl };
