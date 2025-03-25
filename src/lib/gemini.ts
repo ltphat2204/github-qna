@@ -52,62 +52,35 @@ Please summarise the following diff file: \n\n${diff}.`
     return response.response.text();
 }
 
-console.log(await aiSummarizeCommit(`
-    diff --git a/SRC/client/src/com/ltphat/chatapp/client/gui/ChatWindow.java b/SRC/client/src/com/ltphat/chatapp/client/gui/ChatWindow.java
-index 6e4f0ae..0a288d0 100644
---- a/SRC/client/src/com/ltphat/chatapp/client/gui/ChatWindow.java
-+++ b/SRC/client/src/com/ltphat/chatapp/client/gui/ChatWindow.java
-@@ -148,6 +148,7 @@ public void run() {
-                 SwingUtilities.invokeLater(new Runnable() {
-                     @Override
-                     public void run() {
-+                        System.out.println("Id: " + msg.getId());
-                         addMessageToChat(msg.getId(), "Me", msg.getContent(), true);
-                     }
-                 });
-diff --git a/SRC/server/src/com/ltphat/chatapp/server/database/DatabaseManager.java b/SRC/server/src/com/ltphat/chatapp/server/database/DatabaseManager.java
-index 3a00130..70ecb23 100644
---- a/SRC/server/src/com/ltphat/chatapp/server/database/DatabaseManager.java
-+++ b/SRC/server/src/com/ltphat/chatapp/server/database/DatabaseManager.java
-@@ -75,11 +75,13 @@ public int saveMessage(int senderId, String recipientUsername, String content, T
-             stmt.setString(3, content);
-             stmt.setTimestamp(4, timestamp);
- 
--            ResultSet rs = stmt.executeQuery();
--            if (rs.next()) {
--                return rs.getInt(1);
-+            try (ResultSet rs = stmt.executeQuery()) {
-+                if (rs.next()) {
-+                    return rs.getInt("id");
-+                } else {
-+                    throw new SQLException("Inserting message failed, no ID obtained.");
-+                }
+aiSummarizeCommit(`
+    diff --git a/SRC/client/src/META-INF/MANIFEST.MF b/SRC/client/src/META-INF/MANIFEST.MF
+new file mode 100644
+index 0000000..6ca453f
+--- /dev/null
++++ b/SRC/client/src/META-INF/MANIFEST.MF
+@@ -0,0 +1,3 @@
++Manifest-Version: 1.0
++Main-Class: ClientApp
++
+diff --git a/SRC/client/src/com/ltphat/chatapp/client/gui/GroupChatWindow.java b/SRC/client/src/com/ltphat/chatapp/client/gui/GroupChatWindow.java
+index a15d62c..c664641 100644
+--- a/SRC/client/src/com/ltphat/chatapp/client/gui/GroupChatWindow.java
++++ b/SRC/client/src/com/ltphat/chatapp/client/gui/GroupChatWindow.java
+@@ -203,7 +203,7 @@ public void run() {
+             });
+         } else if (message instanceof FileTransferRequest) {
+             FileTransferRequest fileReq = (FileTransferRequest) message;
+-            if (fileReq.getRecipient().equals(username) && fileReq.getSender().equals(groupName)) {
++            if (fileReq.getRecipient().equals(groupName)) {
+                 handleIncomingFile(fileReq);
              }
--            return -1;
- 
-         } catch (SQLException e) {
-             System.out.println(e.getMessage());
-diff --git a/SRC/server/src/com/ltphat/chatapp/server/network/ClientHandler.java b/SRC/server/src/com/ltphat/chatapp/server/network/ClientHandler.java
-index 2f63c09..8157140 100644
---- a/SRC/server/src/com/ltphat/chatapp/server/network/ClientHandler.java
-+++ b/SRC/server/src/com/ltphat/chatapp/server/network/ClientHandler.java
-@@ -130,17 +130,16 @@ private void handleChatMessage(ChatMessage msg) throws IOException {
-             out.writeObject(new ErrorResponse("Message error", "Can not save message."));
-             return;
          }
--        msg.setId(messageId);
- 
-         // Forward message to recipient if online
-         ClientHandler recipientHandler = server.getUserHandler(recipient);
-         if (recipientHandler != null) {
--            recipientHandler.sendMessage(new ChatMessage(user.getUsername(), recipient, content, timestamp));
-+            recipientHandler.sendMessage(new ChatMessage(messageId, user.getUsername(), recipient, content, timestamp));
-         }
- 
-         ClientHandler senderHandler = server.getUserHandler(sender);
-         if (senderHandler != null) {
--            senderHandler.sendMessage(new ChatMessage("Me", user.getUsername(), content, timestamp));
-+            senderHandler.sendMessage(new ChatMessage(messageId, "Me", user.getUsername(), content, timestamp));
-         }
-     }
-`));
+@@ -369,6 +369,7 @@ private void leaveGroup() {
+         if (confirm == JOptionPane.YES_OPTION) {
+             try {
+                 client.leaveGroup(groupName, username);
++                navigateBack();
+             } catch (IOException e) {
+                 e.printStackTrace();
+                 JOptionPane.showMessageDialog(this, "An error occurred while leaving the group.", "Error", JOptionPane.ERROR_MESSAGE);`)
+.then(console.log);

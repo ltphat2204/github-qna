@@ -7,8 +7,6 @@ export const octokit = new Octokit({
     auth: process.env.GITHUB_TOKEN
 });
 
-const githubUrl = "https://github.com/ltphat2204/java-chatapp"
-
 interface Response {
     commitHash: string;
     commitMessage: string;
@@ -49,7 +47,9 @@ export const pollCommit = async (projectId: string) => {
     const commitHashes = await getCommitHashes(githubUrl);
     const unprocessedCommits = await filterUnprocessedCommits(projectId, commitHashes);
 
-    const summaryResponses = await Promise.allSettled(unprocessedCommits.map((commit) => summarizeCommit(githubUrl, commit.commitHash)));
+    const summaryResponses = await Promise.allSettled(unprocessedCommits.map((commit) => 
+        summarizeCommit(githubUrl, commit.commitHash)
+    ));
     const summaries = summaryResponses.map((response) => {
         if (response.status === 'fulfilled') {
             return response.value as string;
@@ -81,7 +81,9 @@ async function summarizeCommit(githubUrl: string, commitHash: string) {
         }
     });
 
-    return await aiSummarizeCommit(data);
+
+    const summary = await aiSummarizeCommit(data) || "";
+    return summary;
 }
 
 async function fetchProjectGithub(projectId: string) {
@@ -114,4 +116,4 @@ async function filterUnprocessedCommits(projectId: string, commitHashes: Respons
     return unprocessedCommits;
 }
 
-pollCommit('cm8o9j7n70000en9vtnilhmgg').then(console.log)
+pollCommit('cm8ob9u9s001dni2ga3pgfsg6').then(console.log)
