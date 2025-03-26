@@ -11,6 +11,8 @@ import { useState } from "react";
 import { askQuestion } from "./action";
 import { readStreamableValue } from "ai/rsc";
 import CodeReferences from './code-references';
+import { api } from '@/trpc/react';
+import { toast } from 'sonner';
 
 export default function AskQuestionCard() {
     const { project } = useProject();
@@ -19,6 +21,7 @@ export default function AskQuestionCard() {
     const [loading, setLoading] = useState(false);
     const [fileReferences, setFileReferences] = useState<{ fileName: string; sourceCode: string; summary: string}[]>([]);
     const [answer, setAnswer] = useState('');
+    const saveAnswer = api.project.saveAnswer.useMutation();
 
     const onSubmit = async(e: React.FormEvent) => {
         setAnswer('');
@@ -47,12 +50,32 @@ export default function AskQuestionCard() {
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent className='sm:max-w-[80vw]'>
                     <DialogHeader>
-                        <DialogTitle>
-                            <div className="flex items-center gap-2">
-                                <Image src="/github-logo.jpg" width={40} height={40} alt="AI Logo" />
-                                <h1 className="text-xl font-bold text-primary/80">AI QnA</h1>
-                            </div>
-                        </DialogTitle>
+                        <div className='flex items-center gap-2'>
+                            <DialogTitle>
+                                <div className="flex items-center gap-2">
+                                    <Image src="/github-logo.jpg" width={40} height={40} alt="AI Logo" />
+                                    <h1 className="text-xl font-bold text-primary/80">AI QnA</h1>
+                                </div>
+                            </DialogTitle>
+                            <Button disabled={saveAnswer.isPending} variant='outline' onClick={() =>
+                                saveAnswer.mutate({
+                                    projectId: project!.id,
+                                    question,
+                                    answer,
+                                    filesReferences: fileReferences
+                                }, {
+                                    onSuccess: () => {
+                                        toast.success('Answer saved successfully');
+                                    },
+                                    onError: (error) => {
+                                        toast.error(error.message);
+                                    }
+                                })
+                            }>
+                                Save answer
+                            </Button>
+                        </div>
+                        
                     </DialogHeader>
 
                     <div data-color-mode="light">
