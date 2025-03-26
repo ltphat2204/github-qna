@@ -13,6 +13,7 @@ import { readStreamableValue } from "ai/rsc";
 import CodeReferences from './code-references';
 import { api } from '@/trpc/react';
 import { toast } from 'sonner';
+import useRefetch from '@/hooks/use-refetch';
 
 export default function AskQuestionCard() {
     const { project } = useProject();
@@ -45,6 +46,8 @@ export default function AskQuestionCard() {
         setLoading(false);
     }
 
+    const refetch = useRefetch();
+
     return (
         <>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -66,6 +69,7 @@ export default function AskQuestionCard() {
                                 }, {
                                     onSuccess: () => {
                                         toast.success('Answer saved successfully');
+                                        refetch();
                                     },
                                     onError: (error) => {
                                         toast.error(error.message);
